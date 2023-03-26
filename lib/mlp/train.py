@@ -148,12 +148,22 @@ def train_net(data, model, loss_func, optimizer, batch_size, max_epochs,
             data_batch, labels_batch = dataloader.get_batch()
 
             #############################################################################
-            # TODO: Update the parameters by a forward pass for the network, a backward #
+            # DONE: Update the parameters by a forward pass for the network, a backward #
             # pass to the network, and make a step for the optimizer.                   #
             # Notice: In backward pass, you should enable regularization.               #
             # Store the loss to loss_hist                                               #
             #############################################################################
-            
+            scores = model.forward(data_batch, is_training=True)
+            loss_hist.append(
+                loss_func.forward(scores, labels_batch)
+            )
+            dLoss = loss_func.backward()
+            model.backward(
+                dLoss,
+                regularization=regularization,
+                reg_lambda=reg_lambda
+            )
+            optimizer.step()
             #############################################################################
             #                             END OF YOUR CODE                              #
             #############################################################################
@@ -168,11 +178,22 @@ def train_net(data, model, loss_func, optimizer, batch_size, max_epochs,
         train_acc = 0
         val_acc = 0
         #############################################################################
-        # TODO: Compute the training accuracy and validation accuracy using         #
+        # DONE: Compute the training accuracy and validation accuracy using         #
         # compute_acc method, store the results to train_acc and val_acc,           #
         # respectively                                                              #
         #############################################################################
-        
+        train_acc = compute_acc(
+            model, data_train, labels_train,
+            num_samples=len(labels_train),
+            batch_size=batch_size
+        )
+        print('Computed train_acc')
+        val_acc = compute_acc(
+            model, data_val, labels_val,
+            num_samples=len(labels_val),
+            batch_size=batch_size
+        )
+        print('Computed val_acc')
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -182,10 +203,12 @@ def train_net(data, model, loss_func, optimizer, batch_size, max_epochs,
         # Save the best params for the model
         if val_acc > opt_val_acc:
             #############################################################################
-            # TODO: Save the optimal parameters to opt_params variable by name using    #
+            # DONE: Save the optimal parameters to opt_params variable by name using    #
             # model.net.gather_params method                                            #
             #############################################################################
-            pass
+            model.net.gather_params()
+            opt_params = model.net.params.copy()
+            opt_val_acc = val_acc
             #############################################################################
             #                             END OF YOUR CODE                              #
             #############################################################################

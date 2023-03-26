@@ -38,7 +38,10 @@ class Module(object):
 class TestFCGeLU(Module):
     def __init__(self, keep_prob=0, dtype=np.float32, seed=None):
         self.net = sequential(
-            ########## TODO: ##########
+            ########## DONE: ##########
+            flatten(),
+            fc(input_dim=15, output_dim=5),
+            gelu()
             ########### END ###########
         )
 
@@ -46,7 +49,10 @@ class TestFCGeLU(Module):
 class SmallFullyConnectedNetwork(Module):
     def __init__(self, keep_prob=0, dtype=np.float32, seed=None):
         self.net = sequential(
-            ########## TODO: ##########
+            ########## DONE: ##########
+            fc(input_dim=4, output_dim=30, name='fc_1', init_scale=0.02),
+            gelu(),
+            fc(input_dim=30, output_dim=7, name='fc_2', init_scale=0.02)
             ########### END ###########
         )
 
@@ -72,6 +78,10 @@ class TinyNet(Module):
         """ Some comments """
         self.net = sequential(
             ########## TODO: ##########
+            flatten(name='flat'),
+            fc(3072, 1000, 5e-2, name="fc1"),
+            gelu(name="gelu1"),
+            fc(1000, 20, 5e-2, name="fc2"),
             ########### END ###########
         )
 

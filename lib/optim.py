@@ -43,9 +43,10 @@ class SGD(Optimizer):
     def update(self, layer):
         for n, dv in layer.grads.items():
             #############################################################################
-            # TODO: Implement the SGD with (optional) Weight Decay                      #
+            # DONE: Implement the SGD with (optional) Weight Decay                      #
             #############################################################################
-            pass
+            layer.params[n] =\
+                layer.params[n] - self.lr*dv - self.weight_decay*layer.params[n] 
             #############################################################################
             #                             END OF YOUR CODE                              #
             #############################################################################
@@ -66,9 +67,20 @@ class Adam(Optimizer):
 
     def update(self, layer):
         #############################################################################
-        # TODO: Implement the Adam with [optinal] Weight Decay                      #
+        # DONE: Implement the Adam with [optinal] Weight Decay                      #
         #############################################################################
-        pass
+        self.t += 1
+        for n, dv in layer.grads.items():
+            self.mt[n] =\
+                self.beta1 * self.mt.get(n, 0) + (1 - self.beta1) * dv
+            self.vt[n] =\
+                self.beta2 * self.vt.get(n, 0) + (1 - self.beta2) * dv**2
+            mt_hat = self.mt[n] / (1 - self.beta1**self.t)
+            vt_hat = self.vt[n] / (1 - self.beta2**self.t)
+            layer.params[n] =\
+                layer.params[n] - (self.lr * mt_hat) / (np.sqrt(vt_hat) + self.eps)
+            # Weight Decay
+            layer.params[n] = layer.params[n] - self.weight_decay*layer.params[n] 
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################

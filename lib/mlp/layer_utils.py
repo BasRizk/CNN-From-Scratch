@@ -69,8 +69,13 @@ class sequential(object):
         """
         for layer in self.layers:
             for n, v in layer.grads.items():
-                ######## TODO ########
-                pass
+                ######## DONE ########
+                # l1_norm = np.linalg.norm(
+                #     layer.params[n], ord=1
+                # )
+                # l1_norm = np.sum(np.abs(l1_norm))
+                layer.grads[n] = v + lam * np.sign(layer.params[n])
+                # print('norm', l1_norm, )
                 ######## END  ########
     
     def apply_l2_regularization(self, lam):
@@ -79,8 +84,11 @@ class sequential(object):
         """
         for layer in self.layers:
             for n, v in layer.grads.items():
-                ######## TODO ########
-                pass
+                ######## DONE ########
+                # l2_norm = np.linalg.norm(
+                #     layer.params[n], ord=2
+                # )
+                layer.grads[n] = v + lam * 2 * layer.params[n]
                 ######## END  ########
 
 
@@ -112,11 +120,12 @@ class flatten(object):
     def forward(self, feat):
         output = None
         #############################################################################
-        # TODO: Implement the forward pass of a flatten layer.                      #
+        # DONE: Implement the forward pass of a flatten layer.                      #
         # You need to reshape (flatten) the input features.                         #
         # Store the results in the variable self.meta provided above.               #
         #############################################################################
-        pass
+        output = feat.reshape(feat.shape[0], np.prod(feat.shape[1:]))
+        
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -129,11 +138,11 @@ class flatten(object):
             raise ValueError("No forward function called before for this module!")
         dfeat = None
         #############################################################################
-        # TODO: Implement the backward pass of a flatten layer.                     #
+        # DONE: Implement the backward pass of a flatten layer.                     #
         # You need to reshape (flatten) the input gradients and return.             #
         # Store the results in the variable dfeat provided above.                   #
         #############################################################################
-        pass
+        dfeat = dprev.reshape(feat.shape)
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -169,10 +178,10 @@ class fc(object):
         assert len(feat.shape) == 2 and feat.shape[-1] == self.input_dim, \
             "But got {} and {}".format(feat.shape, self.input_dim)
         #############################################################################
-        # TODO: Implement the forward pass of a single fully connected layer.       #
+        # DONE: Implement the forward pass of a single fully connected layer.       #
         # Store the results in the variable output provided above.                  #
         #############################################################################
-        pass
+        output = feat@self.params[self.w_name] + self.params[self.b_name]
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -189,12 +198,14 @@ class fc(object):
         assert len(dprev.shape) == 2 and dprev.shape[-1] == self.output_dim, \
             "But got {} and {}".format(dprev.shape, self.output_dim)
         #############################################################################
-        # TODO: Implement the backward pass of a single fully connected layer.      #
+        # DONE: Implement the backward pass of a single fully connected layer.      #
         # Store the computed gradients wrt weights and biases in self.grads with    #
         # corresponding name.                                                       #
         # Store the output gradients in the variable dfeat provided above.          #
         #############################################################################
-        pass
+        self.grads[self.w_name] = feat.T@dprev
+        self.grads[self.b_name] = np.sum(dprev, axis=0)
+        dfeat = dprev@self.params[self.w_name].T
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -216,10 +227,12 @@ class gelu(object):
     def forward(self, feat):
         output = None
         #############################################################################
-        # TODO: Implement the forward pass of GeLU                                  #
+        # DONE: Implement the forward pass of GeLU                                  #
         # Store the results in the variable output provided above.                  #
         #############################################################################
-        pass
+        t1 = np.sqrt(2 / np.pi) * (feat + 0.044715 * feat**3)
+        output = 0.5 * feat * (1 + np.tanh(t1))
+        del t1
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -233,10 +246,16 @@ class gelu(object):
             raise ValueError("No forward function called before for this module!")
         dfeat = None
         #############################################################################
-        # TODO: Implement the backward pass of GeLU                                 #
+        # DONE: Implement the backward pass of GeLU                                 #
         # Store the output gradients in the variable dfeat provided above.          #
         #############################################################################
-        pass
+        t1 = np.sqrt(2 / np.pi) * (feat + 0.044715 * feat**3)
+        t2 = 0.134145 * feat**2 + 1
+        # print(t1.max(), t1.min(), 'before coshine')
+        t3 = (np.tanh(t1)/np.sinh(t1))**2 #np.cosh(t1)**-2
+        dfeat = (0.5*(1 + np.tanh(t1))) + (feat*t2*t3)/(np.sqrt(2)*np.sqrt(np.pi))
+        del t1, t2, t3
+        dfeat = dfeat * dprev
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -273,14 +292,19 @@ class dropout(object):
         kept = None
         output = None
         #############################################################################
-        # TODO: Implement the forward pass of Dropout.                              #
+        # DONE: Implement the forward pass of Dropout.                              #
         # Remember if the keep_prob = 0, there is no dropout.                       #
         # Use self.rng to generate random numbers.                                  #
         # During training, need to scale values with (1 / keep_prob).               #
         # Store the mask in the variable kept provided above.                       #
         # Store the results in the variable output provided above.                  #
         #############################################################################
-        pass
+        output = feat
+        if is_training and (1 > self.keep_prob > 0):
+            kept = np.where(self.rng.rand(*feat.shape) < self.keep_prob, 1, 0)
+            inverted_dropout_correction = (1/self.keep_prob)
+            output = output*(kept*inverted_dropout_correction)
+            
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -295,11 +319,13 @@ class dropout(object):
         if feat is None:
             raise ValueError("No forward function called before for this module!")
         #############################################################################
-        # TODO: Implement the backward pass of Dropout                              #
+        # DONE: Implement the backward pass of Dropout                              #
         # Select gradients only from selected activations.                          #
         # Store the output gradients in the variable dfeat provided above.          #
         #############################################################################
-        pass
+        dfeat = dprev
+        if self.is_training and (self.kept is not None):
+            dfeat = dfeat*self.kept*(1/self.keep_prob)
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -323,10 +349,11 @@ class cross_entropy(object):
         logit = softmax(feat)
         loss = None
         #############################################################################
-        # TODO: Implement the forward pass of an CE Loss                            #
+        # DONE: Implement the forward pass of an CE Loss                            #
         # Store the loss in the variable loss provided above.                       #
         #############################################################################
-        pass
+        right_logit = logit[np.arange(len(label)), label]
+        loss = - np.sum(np.log(right_logit + 1E-100)) / len(label)
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -341,10 +368,13 @@ class cross_entropy(object):
             raise ValueError("No forward function called before for this module!")
         dlogit = None
         #############################################################################
-        # TODO: Implement the backward pass of an CE Loss                           #
+        # DONE: Implement the backward pass of an CE Loss                           #
         # Store the output gradients in the variable dlogit provided above.         #
         #############################################################################
-        pass
+        dlogit = logit
+        dlogit[np.arange(len(label)), label] -= 1
+        if self.size_average:
+            dlogit /= len(label)
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -357,10 +387,12 @@ def softmax(feat):
     scores = None
 
     #############################################################################
-    # TODO: Implement the forward pass of a softmax function                    #
+    # DONE: Implement the forward pass of a softmax function                    #
     # Return softmax values over the last dimension of feat.                    #
     #############################################################################
-    pass
+    exps = np.exp(feat)
+    sum_exps = np.sum(exps, axis=1)
+    scores = np.divide(exps.T, sum_exps).T
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
